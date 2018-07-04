@@ -16,24 +16,25 @@ type FileResult struct {
 
 // StartFileWorker starts a goroutine listening on its input channel, creates files with given path and content and
 // then passes the files or errors via its output channel
-func StartFileWorker(fileActions chan FileAction) chan FileResult {
+func StartFileWorker() (chan FileAction, chan FileResult) {
 	//Create result channel
-	resultChan := make(chan FileResult, 100)
+	inputChan := make(chan FileAction, 100)
+	outputChan := make(chan FileResult, 100)
 
 	// Start working
 	go func() {
 		for {
 			select {
-			case fileAction, ok := <-fileActions:
+			case fileAction, ok := <-inputChan:
 				if !ok {
 					break
 				}
-				resultChan <- writeFile(fileAction)
+				outputChan <- writeFile(fileAction)
 			}
 		}
 	}()
 
-	return resultChan
+	return inputChan, outputChan
 }
 
 func writeFile(fileAction FileAction) FileResult {

@@ -1,7 +1,7 @@
 package crawl
 
 import (
-	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -10,33 +10,41 @@ type RequestAction struct {
 }
 
 type RequestResult struct {
-	Content io.ReadCloser
+	Url     string
+	Content []byte
 	Error   error
 }
 
 // StartRequestWorker starts a goroutine listening on its input channel,
 // gets resources from the given url
 // then passes the response bodies or errors via its output channel
-func StartRequestWorker(requestActions chan RequestAction) chan RequestResult {
-	//Create result channel
-	resultChan := make(chan RequestResult, 100)
+func StartRequestWorker() (chan RequestAction, chan RequestResult) {
+	//Create channels
+	inputChan := make(chan RequestAction, 100)
+	outputChan := make(chan RequestResult, 100)
 
 	// Start working
 	go func() {
 		for {
 			select {
-			case requestAction, ok := <-requestActions:
+			case requestAction, ok := <-inputChan:
 				if !ok {
 					break
 				}
 				resp, err := http.Get(requestAction.Url)
 				if err != nil {
-					resultChan <- RequestResult{Error: err}
+					outputChan <- RequestResult{Error: err}
+					continue
 				}
-				resultChan <- RequestResult{Content: resp.Body}
+				body, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					outputChan <- RequestResult{Error: err}
+					continue
+				}
+				outputChan <- RequestResult{Url: requestAction.Url, Content: body}
 			}
 		}
 	}()
 
-	return resultChan
+	return inputChan, outputChan
 }
