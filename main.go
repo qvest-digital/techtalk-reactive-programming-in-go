@@ -11,33 +11,15 @@ import (
 func main() {
 	args := os.Args[1:]
 
-	reqIn, reqOut := crawl.StartRequestWorker()
 	crawlIn, crawlOut := crawl.StartCrawlWorker()
 	fileIn, fileOut := persistence.StartFileWorker()
 
-	// Push in some Urls
+	fmt.Println("Push in some Urls")
 	for _, arg := range args {
-		reqIn <- crawl.RequestAction{arg}
+		crawlIn <- crawl.CrawlerAction{arg}
 	}
 
-	// Push Response bodies into the crawler workers
-	go func() {
-		for {
-			select {
-			case response, ok := <-reqOut:
-				if !ok {
-					break
-				}
-				if response.Error != nil {
-					fmt.Println(response.Error.Error())
-					continue
-				}
-				crawlIn <- crawl.CrawlerAction{response.Url, response.Content}
-			}
-		}
-	}()
-
-	// Push response bodies to file workers and print out newly found URLs
+	fmt.Println("Push response bodies to file workers and print out newly found URLs")
 	go func() {
 		for {
 			select {
@@ -45,12 +27,13 @@ func main() {
 				if !ok {
 					break
 				}
-				fileIn <- persistence.FileAction{Path: crawledBody.Url, Content: crawledBody.Content}
-				for _, url := range crawledBody.NewUrls {
+				fileIn <- persistence.FileAction{Path: crawledBody.Url, Content: crawledBody.Data}
+				for _, url := range crawledBody.Data {
 					fmt.Println(url)
 				}
 			}
 		}
+		close(fileIn)
 	}()
 
 	go func() {
@@ -66,6 +49,8 @@ func main() {
 			}
 		}
 	}()
+
+	fmt.Println("Wait loop")
 	for {
 	}
 }

@@ -1,16 +1,17 @@
 package crawl
 
-import "mvdan.cc/xurls"
+import (
+	"github.com/PuerkitoBio/goquery"
+)
 
 type CrawlerAction struct {
-	Url     string
-	Content []byte
+	Url string
 }
 
 type CrawlerResult struct {
-	Url     string
-	Content []byte
-	NewUrls []string
+	Url   string
+	Data  []string
+	Error error
 }
 
 // StartRequestWorker starts a goroutine listening on its input channel,
@@ -29,8 +30,18 @@ func StartCrawlWorker() (chan CrawlerAction, chan CrawlerResult) {
 				if !ok {
 					break
 				}
-				urls := xurls.Relaxed().FindAllString(string(crawlerAction.Content), -1)
-				outputChan <- CrawlerResult{Content: crawlerAction.Content, NewUrls: urls}
+				doc, err := goquery.NewDocument(crawlerAction.Url)
+				if err != nil {
+					outputChan <- CrawlerResult{Error: err}
+					continue
+				}
+				links := make([]string, 0)
+				doc.Find("a").Each(func(index int, item *goquery.Selection) {
+					link, _ := item.Find("a").Attr("href")
+					links = append(links, link)
+
+				})
+				outputChan <- CrawlerResult{Data: links}
 			}
 		}
 	}()
