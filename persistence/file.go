@@ -14,8 +14,7 @@ type FileResult struct {
 	Error error
 }
 
-// StartFileWorker starts a goroutine listening on its input channel,
-// creates files with given path and content and
+// StartFileWorker starts a goroutine listening on its input channel, creates files with given path and content and
 // then passes the files or errors via its output channel
 func StartFileWorker(fileActions chan FileAction) chan FileResult {
 	//Create result channel
