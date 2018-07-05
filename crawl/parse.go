@@ -30,6 +30,7 @@ func StartCrawlWorker() (chan CrawlerAction, chan CrawlerResult) {
 				if !ok {
 					break
 				}
+
 				doc, err := goquery.NewDocument(crawlerAction.Url)
 				if err != nil {
 					outputChan <- CrawlerResult{Error: err}

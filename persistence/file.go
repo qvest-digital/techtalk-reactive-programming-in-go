@@ -33,7 +33,6 @@ func StartFileWorker() (chan FileAction, chan FileResult) {
 			}
 		}
 	}()
-
 	return inputChan, outputChan
 }
 

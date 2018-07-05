@@ -15,12 +15,10 @@ func main() {
 	crawlIn, crawlOut := crawl.StartCrawlWorker()
 	fileIn, fileOut := persistence.StartFileWorker()
 
-	fmt.Println("Push in some Urls")
 	for _, arg := range args {
 		crawlIn <- crawl.CrawlerAction{arg}
 	}
 
-	fmt.Println("Push response bodies to file workers and print out newly found URLs")
 	go func() {
 		for {
 			select {
@@ -32,9 +30,7 @@ func main() {
 					fmt.Println(crawledBody.Error.Error())
 					break
 				}
-				fmt.Println("Url: " + crawledBody.Url)
 				fileName := crawledBody.Url[strings.Index(crawledBody.Url, "://")+3:]
-				fmt.Println("Filename: " + fileName)
 				fileIn <- persistence.FileAction{Path: fileName, Content: crawledBody.Data}
 				for _, url := range crawledBody.Data {
 					fmt.Println(url)
@@ -58,7 +54,5 @@ func main() {
 		}
 	}()
 
-	fmt.Println("Wait loop")
-	for {
-	}
+	select {}
 }
