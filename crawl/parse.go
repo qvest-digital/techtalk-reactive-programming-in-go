@@ -37,11 +37,11 @@ func StartCrawlWorker() (chan CrawlerAction, chan CrawlerResult) {
 				}
 				links := make([]string, 0)
 				doc.Find("a").Each(func(index int, item *goquery.Selection) {
-					link, _ := item.Find("a").Attr("href")
+					link, _ := item.Attr("href")
 					links = append(links, link)
 
 				})
-				outputChan <- CrawlerResult{Data: links}
+				outputChan <- CrawlerResult{Url: crawlerAction.Url, Data: links}
 			}
 		}
 	}()

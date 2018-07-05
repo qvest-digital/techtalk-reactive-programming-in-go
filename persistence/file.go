@@ -5,7 +5,7 @@ import "os"
 // FileAction describes the data expected in the input channel
 type FileAction struct {
 	Path    string
-	Content []byte
+	Content []string
 }
 
 // FileResult describes the data in the output channel
@@ -39,15 +39,17 @@ func StartFileWorker() (chan FileAction, chan FileResult) {
 
 func writeFile(fileAction FileAction) FileResult {
 	// Create new file
-	file, err := os.Open(fileAction.Path)
+	file, err := os.Create(fileAction.Path)
 	if err != nil {
 		return FileResult{Error: err}
 	}
 
 	// Write to file
-	_, err = file.Write(fileAction.Content)
-	if err != nil {
-		return FileResult{Error: err}
+	for _, line := range fileAction.Content {
+		_, err = file.Write([]byte(line + "\n"))
+		if err != nil {
+			return FileResult{Error: err}
+		}
 	}
 	return FileResult{File: file}
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/tarent/techtalk-reactive-programming-in-go/crawl"
 	"github.com/tarent/techtalk-reactive-programming-in-go/persistence"
@@ -27,7 +28,14 @@ func main() {
 				if !ok {
 					break
 				}
-				fileIn <- persistence.FileAction{Path: crawledBody.Url, Content: crawledBody.Data}
+				if crawledBody.Error != nil {
+					fmt.Println(crawledBody.Error.Error())
+					break
+				}
+				fmt.Println("Url: " + crawledBody.Url)
+				fileName := crawledBody.Url[strings.Index(crawledBody.Url, "://")+3:]
+				fmt.Println("Filename: " + fileName)
+				fileIn <- persistence.FileAction{Path: fileName, Content: crawledBody.Data}
 				for _, url := range crawledBody.Data {
 					fmt.Println(url)
 				}
