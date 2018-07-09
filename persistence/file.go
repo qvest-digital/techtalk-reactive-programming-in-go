@@ -24,13 +24,8 @@ func StartFileWorker() (chan FileAction, chan FileResult) {
 	// Start working
 	go func() {
 		for {
-			select {
-			case fileAction, ok := <-inputChan:
-				if !ok {
-					break
-				}
-				outputChan <- writeFile(fileAction)
-			}
+			fileAction := <-inputChan
+			outputChan <- writeFile(fileAction)
 		}
 	}()
 	return inputChan, outputChan
@@ -38,7 +33,7 @@ func StartFileWorker() (chan FileAction, chan FileResult) {
 
 func writeFile(fileAction FileAction) FileResult {
 	// Create new file
-	file, err := os.Create(fileAction.Path)
+	file, err := os.Create("sites/" + fileAction.Path)
 	if err != nil {
 		return FileResult{Error: err}
 	}

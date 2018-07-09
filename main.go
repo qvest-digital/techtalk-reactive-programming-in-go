@@ -12,7 +12,7 @@ import (
 func main() {
 	args := os.Args[1:]
 
-	crawlIn, crawlOut := crawl.StartCrawlWorker()
+	crawlIn, crawlOut := crawl.StartCrawlWorker(2)
 	fileIn, fileOut := persistence.StartFileWorker()
 
 	for _, arg := range args {
@@ -21,35 +21,24 @@ func main() {
 
 	go func() {
 		for {
-			select {
-			case crawledBody, ok := <-crawlOut:
-				if !ok {
-					break
-				}
-				if crawledBody.Error != nil {
-					fmt.Println(crawledBody.Error.Error())
-					break
-				}
-				fileName := crawledBody.Url[strings.Index(crawledBody.Url, "://")+3:]
-				fileIn <- persistence.FileAction{Path: fileName, Content: crawledBody.Data}
-				for _, url := range crawledBody.Data {
-					fmt.Println(url)
-				}
+			crawledBody := <-crawlOut
+			if crawledBody.Error != nil {
+				fmt.Println(crawledBody.Error.Error())
+				break
+			}
+			fileName := crawledBody.Url[strings.Index(crawledBody.Url, "://")+3:]
+			fileIn <- persistence.FileAction{Path: fileName, Content: crawledBody.Data}
+			for _, url := range crawledBody.Data {
+				fmt.Println(url)
 			}
 		}
-		close(fileIn)
 	}()
 
 	go func() {
 		for {
-			select {
-			case fileResult, ok := <-fileOut:
-				if !ok {
-					break
-				}
-				if fileResult.Error != nil {
-					fmt.Println(fileResult.Error.Error())
-				}
+			fileResult := <-fileOut
+			if fileResult.Error != nil {
+				fmt.Println(fileResult.Error.Error())
 			}
 		}
 	}()

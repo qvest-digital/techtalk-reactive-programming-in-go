@@ -17,20 +17,16 @@ type CrawlerResult struct {
 // StartRequestWorker starts a goroutine listening on its input channel,
 // gets resources from the given url
 // then passes the response bodies or errors via its output channel
-func StartCrawlWorker() (chan CrawlerAction, chan CrawlerResult) {
+func StartCrawlWorker(numWorkers int) (chan CrawlerAction, chan CrawlerResult) {
 	//Create channels
 	inputChan := make(chan CrawlerAction, 100)
 	outputChan := make(chan CrawlerResult, 100)
 
 	// Start working
 	go func() {
-		for {
+		for i := 0; i < numWorkers; i++ {
 			select {
-			case crawlerAction, ok := <-inputChan:
-				if !ok {
-					break
-				}
-
+			case crawlerAction := <-inputChan:
 				doc, err := goquery.NewDocument(crawlerAction.Url)
 				if err != nil {
 					outputChan <- CrawlerResult{Error: err}
