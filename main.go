@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -10,27 +11,18 @@ import (
 )
 
 func main() {
-	args := os.Args[1:]
-
 	crawlIn, crawlOut := crawl.StartCrawlWorker(2)
 	fileIn, fileOut := persistence.StartFileWorker()
-
-	for _, arg := range args {
-		crawlIn <- crawl.CrawlerAction{arg}
-	}
 
 	go func() {
 		for {
 			crawledBody := <-crawlOut
 			if crawledBody.Error != nil {
 				fmt.Println(crawledBody.Error.Error())
-				break
+				os.Exit(1)
 			}
 			fileName := crawledBody.Url[strings.Index(crawledBody.Url, "://")+3:]
 			fileIn <- persistence.FileAction{Path: fileName, Content: crawledBody.Data}
-			for _, url := range crawledBody.Data {
-				fmt.Println(url)
-			}
 		}
 	}()
 
@@ -39,9 +31,25 @@ func main() {
 			fileResult := <-fileOut
 			if fileResult.Error != nil {
 				fmt.Println(fileResult.Error.Error())
+				os.Exit(1)
 			}
 		}
 	}()
 
-	select {}
+	// Scan command line input line by line
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Println("Enter URLs line by line. Type 'exit' to quit.")
+		for scanner.Scan() {
+			if scanner.Text() == "exit" {
+				os.Exit(0)
+			}
+			crawlIn <- crawl.CrawlerAction{Url: scanner.Text()}
+		}
+		if scanner.Err() != nil {
+			fmt.Println(scanner.Err().Error())
+			os.Exit(1)
+		}
+	}
+
 }

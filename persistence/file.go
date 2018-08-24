@@ -2,6 +2,8 @@ package persistence
 
 import "os"
 
+const basePath = "sites/"
+
 // FileAction describes the data expected in the input channel
 type FileAction struct {
 	Path    string
@@ -32,8 +34,10 @@ func StartFileWorker() (chan FileAction, chan FileResult) {
 }
 
 func writeFile(fileAction FileAction) FileResult {
+	createDirIfNotExist(basePath)
+
 	// Create new file
-	file, err := os.Create("sites/" + fileAction.Path)
+	file, err := os.Create(basePath + fileAction.Path)
 	if err != nil {
 		return FileResult{Error: err}
 	}
@@ -46,4 +50,13 @@ func writeFile(fileAction FileAction) FileResult {
 		}
 	}
 	return FileResult{File: file}
+}
+
+func createDirIfNotExist(dir string) {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
