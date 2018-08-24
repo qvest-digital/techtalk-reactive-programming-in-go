@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -11,18 +12,19 @@ import (
 )
 
 func main() {
-	crawlIn, crawlOut := crawl.StartCrawlWorker(2)
+	crawlIn, crawlOut := crawl.StartCrawlWorker(3)
 	fileIn, fileOut := persistence.StartFileWorker()
 
 	go func() {
 		for {
-			crawledBody := <-crawlOut
-			if crawledBody.Error != nil {
-				fmt.Println(crawledBody.Error.Error())
-				os.Exit(1)
+			crawlResult := <-crawlOut
+			if crawlResult.Error != nil {
+				log.Println(crawlResult.Error.Error())
+				continue
 			}
-			fileName := crawledBody.Url[strings.Index(crawledBody.Url, "://")+3:]
-			fileIn <- persistence.FileAction{Path: fileName, Content: crawledBody.Data}
+
+			fileName := getFileName(crawlResult.Url)
+			fileIn <- persistence.FileAction{Path: fileName, Content: crawlResult.Data}
 		}
 	}()
 
@@ -30,9 +32,10 @@ func main() {
 		for {
 			fileResult := <-fileOut
 			if fileResult.Error != nil {
-				fmt.Println(fileResult.Error.Error())
-				os.Exit(1)
+				log.Println(fileResult.Error.Error())
+				continue
 			}
+			log.Printf("Wrote %d lines to %s", fileResult.Lines, fileResult.File.Name())
 		}
 	}()
 
@@ -47,9 +50,11 @@ func main() {
 			crawlIn <- crawl.CrawlerAction{Url: scanner.Text()}
 		}
 		if scanner.Err() != nil {
-			fmt.Println(scanner.Err().Error())
-			os.Exit(1)
+			log.Fatalln(scanner.Err().Error())
 		}
 	}
+}
 
+func getFileName(in string) string {
+	return in[strings.Index(in, "://")+3:]
 }
